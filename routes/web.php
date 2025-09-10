@@ -90,7 +90,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('approvals/{type}/{id}/reject', [ApprovalController::class, 'reject'])->name('approvals.reject');
     });
 
-    // Export
-    Route::middleware(['role:admin'])->get('/export/shlokas-json', [ExportController::class, 'exportJson'])->name('export.shlokas-json');
+    // Export Routes
+    Route::middleware(['auth', 'can:export'])->group(function () {
+        Route::get('/export', [ExportController::class, 'index'])->name('export.index');
+        Route::get('/export/shlokas-json', [ExportController::class, 'exportJson'])->name('export.shlokas-json');
+    });
 
 });

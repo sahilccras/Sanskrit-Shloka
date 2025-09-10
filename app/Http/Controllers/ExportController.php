@@ -11,91 +11,71 @@ use Illuminate\Support\Facades\Storage;
 class ExportController extends Controller
 {
     /**
-     * Display export options
+     * Display export options page.
      */
     public function index()
     {
         $this->authorize('export');
 
-        $stats = [
-            'total_shlokas' => Shloka::count(),
-            'approved_shlokas' => Shloka::approved()->count(),
-            'total_qapairs' => QAPair::count(),
-            'approved_qapairs' => QAPair::approved()->count(),
-        ];
-
-        return view('admin.export', compact('stats'));
+        return view('export.index');
     }
 
     /**
-     * Export shlokas to JSON format
+     * Export shlokas to JSON format based on selected fields.
      */
     public function exportJson(Request $request)
     {
         $this->authorize('export');
 
-        $request->validate([
+        $validated = $request->validate([
             'include_pending' => 'nullable|boolean',
-            'source_filter' => 'nullable|string',
-            'category_filter' => 'nullable|string',
+            'fields' => 'required|array',
+            'fields.shloka' => 'nullable|array',
+            'fields.qa_pair' => 'nullable|array',
         ]);
+
+        $selectedShlokaFields = array_keys($validated['fields']['shloka'] ?? []);
+        $selectedQaPairFields = array_keys($validated['fields']['qa_pair'] ?? []);
+
+        if (empty($selectedShlokaFields)) {
+            return back()->withErrors(['fields' => 'You must select at least one Shloka field to export.'])->withInput();
+        }
 
         $query = Shloka::with(['approvedQAPairs']);
 
-        // Only include approved shlokas unless specifically requested
         if (!$request->include_pending) {
             $query->approved();
         }
 
-        // Apply filters
-        if ($request->source_filter) {
-            $query->where('source_text_name', $request->source_filter);
-        }
-
-        if ($request->category_filter) {
-            $query->where('category', $request->category_filter);
-        }
-
         $shlokas = $query->get();
 
-        $exportData = $shlokas->map(function ($shloka) {
-            return [
-                'id' => $shloka->shloka_id,
-                'sanskrit_shloka' => $shloka->sanskrit_shloka,
-                'unicode' => $shloka->unicode,
-                'transliteration' => $shloka->transliteration,
-                'translations' => $shloka->translations,
-                'metadata' => [
-                    'source' => [
-                        'text_name' => $shloka->source_text_name,
-                        'section' => $shloka->source_section,
-                        'chapter' => $shloka->source_chapter,
-                        'verse' => $shloka->source_verse,
-                    ],
-                    'keywords' => $shloka->keywords,
-                    'category' => $shloka->category,
-                    'commentaries' => $shloka->commentaries,
-                ],
-                'qa_pairs' => $shloka->approvedQAPairs->map(function ($qaPair) {
-                    return [
-                        'question' => $qaPair->question,
-                        'answer' => $qaPair->answer,
-                        'keywords' => $qaPair->keywords,
-                    ];
-                })->toArray(),
-                'context' => $shloka->approvedQAPairs->pluck('context')->filter()->first(),
-            ];
+        $exportData = $shlokas->map(function ($shloka) use ($selectedShlokaFields, $selectedQaPairFields) {
+            $shlokaData = [];
+            foreach ($selectedShlokaFields as $field) {
+                $shlokaData[$field] = $shloka->$field;
+            }
+
+            if (!empty($selectedQaPairFields)) {
+                $shlokaData['qa_pairs'] = $shloka->approvedQAPairs->map(function ($qaPair) use ($selectedQaPairFields) {
+                    $qaData = [];
+                    foreach ($selectedQaPairFields as $field) {
+                        $qaData[$field] = $qaPair->$field;
+                    }
+                    return $qaData;
+                });
+            }
+
+            return $shlokaData;
         })->values()->toArray();
 
         $filename = 'shloka_export_' . now()->format('Y_m_d_His') . '.json';
         $jsonContent = json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-        // Store the file in storage/app/exports
-        Storage::put('exports/' . $filename, $jsonContent);
+        $tempPath = 'exports/' . $filename;
+        Storage::put($tempPath, $jsonContent);
 
-        // Return download response
         return response()->download(
-            Storage::path('exports/' . $filename),
+            Storage::path($tempPath),
             $filename,
             ['Content-Type' => 'application/json']
         )->deleteFileAfterSend();

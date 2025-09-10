@@ -39,5 +39,15 @@
             </div>
         </div>
     </div>
+
+    <div class="col-md-4">
+        <div class="card text-bg-secondary">
+            <div class="card-body">
+                <h5 class="card-title">Export Data</h5>
+                <p class="card-text">Export all approved data as JSON.</p>
+                <a href="{{ route('export.index') }}" class="btn btn-light btn-sm">Go</a>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection

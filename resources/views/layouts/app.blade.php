@@ -50,12 +50,40 @@
         </div>
     </nav>
 
-    <main class="container">
-        @yield('content')
-    </main>
+    <div class="container">
+        <div class="row">
+            @auth
+            <aside class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        Shlokas
+                    </div>
+                    <div class="list-group list-group-flush" style="max-height: 80vh; overflow-y: auto;">
+                        @if(isset($all_shlokas) && $all_shlokas->count() > 0)
+                            @foreach($all_shlokas as $shloka)
+                                <a href="{{ route('shlokas.show', $shloka->id) }}"
+                                   class="list-group-item list-group-item-action {{ request()->is('shlokas/'.$shloka->id) ? 'active' : '' }}">
+                                    Shloka #{{ $shloka->shloka_id }}
+                                </a>
+                            @endforeach
+                        @else
+                            <div class="list-group-item">No shlokas found.</div>
+                        @endif
+                    </div>
+                </div>
+            </aside>
+            <main class="col-md-9">
+                @yield('content')
+            </main>
+            @else
+            <main class="col-12">
+                @yield('content')
+            </main>
+            @endauth
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     @stack('scripts')
 </body>
 </html>
-

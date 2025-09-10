@@ -13,11 +13,32 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Create a specific Admin user
+        User::factory()->create([
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
+            'password' => 'password', // Factory will hash it
+            'role' => 'admin',
+        ]);
 
+        // Create a generic test user
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'role' => 'fixed_entry',
+        ]);
+
+        // Create other user types
+        User::factory()->create([
+            'name' => 'Approver User',
+            'email' => 'approver@example.com',
+            'role' => 'approver',
+        ]);
+
+        User::factory()->create([
+            'name' => 'Variable User',
+            'email' => 'variable@example.com',
+            'role' => 'variable_entry',
         ]);
     }
 }

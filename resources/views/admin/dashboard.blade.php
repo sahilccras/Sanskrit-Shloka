@@ -29,7 +29,7 @@
             <div class="card-body">
                 <h5 class="card-title">Export Data</h5>
                 <p class="card-text">Export all approved data as JSON.</p>
-                <a href="{{ route('admin.export.json') }}" class="btn btn-light btn-sm">Export</a>
+                <a href="{{ route('export.index') }}" class="btn btn-light btn-sm">Go</a>
             </div>
         </div>
     </div>
